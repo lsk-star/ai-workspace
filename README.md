@@ -110,9 +110,13 @@ pnpm dev
 
 ### 4. 生成检索索引
 
+`pnpm dev` 与 `pnpm build` 会自动生成索引；也可以单独执行：
+
 ```bash
 pnpm index
 ```
+
+内容没有变化时不会重写文件。
 
 ### 5. 常用命令
 

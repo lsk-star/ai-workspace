@@ -109,5 +109,44 @@ const index = {
   documents,
 }
 
-await fs.writeFile(output, `${JSON.stringify(index, null, 2)}\n`, 'utf8')
-console.log(`knowledge-index.json → ${documents.length} documents, ${categories.length} categories`)
+const serialized = `${JSON.stringify(index, null, 2)}\n`
+
+async function readIfExists(file) {
+  try {
+    return await fs.readFile(file, 'utf8')
+  } catch {
+    return ''
+  }
+}
+
+/** 内容未变化时不重写文件，避免 generatedAt 变化导致无意义的 diff */
+async function writeIfChanged() {
+  const previous = await readIfExists(output)
+  if (previous) {
+    const previousShape = previous.replace(/^\s*"generatedAt":.*$/m, '')
+    const nextShape = serialized.replace(/^\s*"generatedAt":.*$/m, '')
+    if (previousShape === nextShape) {
+      console.log(
+        `knowledge-index.json 未变化 → ${documents.length} documents, ${categories.length} categories`,
+      )
+      return
+    }
+    const previousTime = previous.match(/"generatedAt":\s*"([^"]+)"/)?.[1]
+    if (previousTime) {
+      await fs.writeFile(
+        output,
+        serialized.replace(/"generatedAt":\s*"[^"]+"/, `"generatedAt": "${previousTime}"`),
+        'utf8',
+      )
+      console.log(
+        `knowledge-index.json → ${documents.length} documents, ${categories.length} categories`,
+      )
+      return
+    }
+  }
+  await fs.writeFile(output, serialized, 'utf8')
+  console.log(`knowledge-index.json → ${documents.length} documents, ${categories.length} categories`)
+}
+
+await writeIfChanged()
+
