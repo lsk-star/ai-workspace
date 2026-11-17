@@ -11,6 +11,9 @@ const md = new MarkdownIt({
   typographer: false,
 })
 
+// 关闭“模糊链接”：否则 AGENTS.md、backend.md 这类文件名会被当成网址
+md.linkify.set({ fuzzyLink: false })
+
 md.options.highlight = (code: string, lang: string): string => {
   const language = lang && hljs.getLanguage(lang) ? lang : ''
   try {

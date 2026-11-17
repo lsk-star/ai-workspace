@@ -159,8 +159,14 @@ async function save(): Promise<void> {
     updatedAt.value = { ...updatedAt.value, [target.value]: new Date().toISOString() }
     mode.value = 'preview'
     message.success(`已写入 ${current.value.file}`)
-  } catch {
-    message.error('当前环境不支持直接写入，请复制或下载后手动保存')
+  } catch (error) {
+    const detail =
+      error instanceof Error && !(error instanceof TypeError) ? error.message : ''
+    message.error(
+      detail
+        ? `写入失败：${detail}`
+        : '当前环境不支持直接写入，请复制或下载后手动保存',
+    )
   } finally {
     saving.value = false
   }

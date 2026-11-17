@@ -27,6 +27,11 @@ function parseFrontMatter(raw) {
   return { data, body: cleaned.slice(match[0].length) }
 }
 
+/** 去掉代码块，避免把 ``` 里的“## 注释”当成标题索引 */
+function stripCodeFences(body) {
+  return body.replace(/^[ \t]*```[\s\S]*?^[ \t]*```[ \t]*$/gm, '')
+}
+
 function headingsOf(body) {
   const headings = []
   const pattern = /^(#{2,4})\s+(.+)$/gm
@@ -90,7 +95,7 @@ for (const file of files) {
     updated: data.updated || '',
     status: data.status || '',
     order: Number(data.order ?? 100),
-    headings: headingsOf(body),
+    headings: headingsOf(stripCodeFences(body)),
   })
 }
 

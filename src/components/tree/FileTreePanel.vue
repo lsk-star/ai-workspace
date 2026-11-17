@@ -65,11 +65,15 @@ function startThumbDrag(event: PointerEvent): void {
     draggingThumb.value = false
     window.removeEventListener('pointermove', onMove)
     window.removeEventListener('pointerup', onUp)
+    window.removeEventListener('pointercancel', onUp)
+    window.removeEventListener('blur', onUp)
     updateScrollbar()
   }
 
   window.addEventListener('pointermove', onMove)
   window.addEventListener('pointerup', onUp)
+  window.addEventListener('pointercancel', onUp)
+  window.addEventListener('blur', onUp)
 }
 
 onMounted(() => {
@@ -145,13 +149,24 @@ async function openHit(hit: DocMeta): Promise<void> {
 }
 
 const focusSearch = useDebounceFn(async () => {
-  await nextTick()
-  searchInput.value?.focus()
+  // 窄屏抽屉刚打开时组件才挂载，聚焦要等输入框出现
+  for (let i = 0; i < 10; i += 1) {
+    await nextTick()
+    if (searchInput.value) {
+      searchInput.value.focus()
+      return
+    }
+    await new Promise((resolve) => setTimeout(resolve, 20))
+  }
 }, 30)
 
 watch(
-  () => ui.searchTick,
-  () => void focusSearch(),
+  () => ui.searchPending,
+  (pending) => {
+    // immediate 兜住“窄屏抽屉打开时才挂载、错过触发”的情况
+    if (pending && ui.consumeSearchFocus()) void focusSearch()
+  },
+  { immediate: true },
 )
 </script>
 

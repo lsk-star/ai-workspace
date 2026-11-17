@@ -76,10 +76,14 @@ function startResize(event: PointerEvent): void {
     document.body.classList.remove('aw-resizing')
     window.removeEventListener('pointermove', onMove)
     window.removeEventListener('pointerup', onUp)
+    window.removeEventListener('pointercancel', onUp)
+    window.removeEventListener('blur', onUp)
   }
 
   window.addEventListener('pointermove', onMove)
   window.addEventListener('pointerup', onUp)
+  window.addEventListener('pointercancel', onUp)
+  window.addEventListener('blur', onUp)
 }
 
 function resetWidth(): void {

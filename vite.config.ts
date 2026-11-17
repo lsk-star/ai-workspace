@@ -66,13 +66,42 @@ function harnessApiPlugin(): Plugin {
       return
     }
 
+    // 只允许同源页面写入，避免任意网页改写 AGENTS.md / harness
+    const origin = req.headers.origin
+    if (origin) {
+      let sameOrigin = false
+      try {
+        sameOrigin = new URL(origin).host === req.headers.host
+      } catch {
+        sameOrigin = false
+      }
+      if (!sameOrigin) {
+        send(403, { ok: false, error: '拒绝跨源写入' })
+        return
+      }
+    }
+    // 要求 JSON：跨站请求会先走预检，预检得不到 CORS 响应即被浏览器拦下
+    if (!String(req.headers['content-type'] || '').includes('application/json')) {
+      send(415, { ok: false, error: '需要 Content-Type: application/json' })
+      return
+    }
+
+    const MAX_BODY = 2_000_000
     let raw = ''
+    let tooLarge = false
     req.setEncoding('utf8')
     req.on('data', (chunk: string) => {
+      if (tooLarge) return
       raw += chunk
-      if (raw.length > 2_000_000) req.destroy()
+      if (raw.length > MAX_BODY) {
+        tooLarge = true
+        raw = ''
+        send(413, { ok: false, error: '内容过大，上限 2 MB' })
+        req.resume()
+      }
     })
     req.on('end', () => {
+      if (tooLarge) return
       void (async () => {
         try {
           const payload = JSON.parse(raw || '{}') as { content?: unknown }
