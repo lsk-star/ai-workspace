@@ -1,0 +1,62 @@
+:root {
+  /* 纸张与线条 */
+  --aw-bg: #ffffff;
+  --aw-bg-soft: #f7f7f8;
+  --aw-bg-hover: #f4f4f6;
+  --aw-line: #ececee;
+  --aw-line-soft: #f3f3f5;
+
+  /* 选中态：浅灰蓝 */
+  --aw-sel: #eef1f7;
+  --aw-sel-strong: #e3e8f2;
+
+  /* 文本 */
+  --aw-text: #17181b;
+  --aw-text-2: #4b4d54;
+  --aw-text-3: #8b8e96;
+  --aw-text-4: #b6b8bf;
+
+  /* 强调：黑与灰，不使用红色 */
+  --aw-accent: #1f2024;
+  --aw-accent-hover: #000000;
+  --aw-accent-weak: #f2f3f5;
+
+  /* 标签：米色 */
+  --aw-tag-bg: #f7f2e7;
+  --aw-tag-text: #7a5f2a;
+  --aw-tag-line: #ece2cc;
+
+  /* 语义色（仅用于极少的状态提示） */
+  --aw-green: #4d8a6a;
+  --aw-green-weak: #f0f6f2;
+  --aw-amber: #8a6a2f;
+  --aw-amber-weak: #faf6ec;
+
+  /* 尺寸 */
+  --aw-header-h: 56px;
+  --aw-left-w: 262px;
+  --aw-right-w: 238px;
+  --aw-content-max: 920px;
+  --aw-radius-sm: 6px;
+  --aw-radius: 8px;
+  --aw-radius-lg: 12px;
+
+  /* 阴影 */
+  --aw-shadow-xs: 0 1px 2px rgba(17, 20, 28, 0.04);
+  --aw-shadow-sm: 0 2px 8px rgba(17, 20, 28, 0.05);
+  --aw-shadow-md: 0 10px 30px rgba(17, 20, 28, 0.08);
+
+  /* 字体 */
+  --aw-font:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
+  --aw-font-mono:
+    ui-monospace, 'SFMono-Regular', 'Cascadia Code', 'JetBrains Mono', Consolas, 'Liberation Mono',
+    Menlo, monospace;
+
+  /* 阅读字号 */
+  --aw-body-size: 16px;
+  --aw-body-leading: 1.9;
+
+  --aw-transition: 150ms cubic-bezier(0.2, 0, 0, 1);
+}

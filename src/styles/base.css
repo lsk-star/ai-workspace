@@ -1,0 +1,138 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--aw-font);
+  font-size: 16px;
+  color: var(--aw-text);
+  background: var(--aw-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
+}
+
+::selection {
+  background: var(--aw-sel-strong);
+  color: var(--aw-text);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #dcdce2 transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #dedee4;
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #c9c9d2;
+  background-clip: content-box;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+a {
+  color: var(--aw-text);
+  text-decoration: none;
+}
+
+a:hover {
+  color: #000;
+}
+
+button {
+  font-family: inherit;
+}
+
+.app-shell {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.app-main {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+.aw-muted {
+  color: var(--aw-text-3);
+}
+
+.aw-mono {
+  font-family: var(--aw-font-mono);
+}
+
+/* Ant Design：中性化，去掉默认蓝色/红色倾向 */
+.ant-btn {
+  font-weight: 500;
+}
+
+.ant-btn-primary:not(:disabled) {
+  box-shadow: none;
+}
+
+.ant-btn-primary:not(:disabled):hover {
+  background: #000 !important;
+}
+
+.ant-btn {
+  box-shadow: none;
+}
+
+.ant-message-notice-content {
+  border-radius: 10px;
+  box-shadow: var(--aw-shadow-md);
+}
+
+/* 输入框使用中性焦点环，避免黑色描边过重 */
+.ant-input-affix-wrapper:focus,
+.ant-input-affix-wrapper-focused,
+.ant-input:focus,
+.ant-select-focused .ant-select-selector {
+  border-color: #b9bcc4 !important;
+  box-shadow: 0 0 0 3px rgba(31, 32, 36, 0.06) !important;
+}
+
+.ant-modal-content {
+  border-radius: 14px !important;
+}
+
+.ant-result-title {
+  color: var(--aw-text);
+}
+
+@media (max-width: 960px) {
+  :root {
+    --aw-header-h: 52px;
+    --aw-body-size: 16px;
+  }
+}
