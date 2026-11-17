@@ -121,6 +121,8 @@ export default defineConfig({
         '**/*.tmpdir/**',
         '**/.*.tmpdir/**',
         '**/*.tmp',
+        '**/.acl-recovery/**',
+        '**/.*.tmpdir/*',
       ],
     },
   },

@@ -10,3 +10,4 @@ dist-ssr
 shots/
 PLAN.md
 scripts/screenshot.py
+.acl-recovery/
