@@ -4,14 +4,16 @@
 
 | 文件 | 用途 | 状态 |
 | --- | --- | --- |
-| `banner.svg` | 顶部横版封面 | 已提供占位版 |
+| `banner.png` | 顶部横版封面 | 已提供 |
+| `architecture.png` | 工作流程示意图 | 已提供 |
+| `app-icon.png` | 应用图标（同时用于站点 favicon） | 已提供 |
 | `overview.png` | 阅读界面截图 | 已提供 |
 | `harness.png` | Harness 配置预览截图 | 已提供 |
 | `harness-edit.png` | Harness 编辑态截图 | 已提供 |
 
 ## 图片生成提示词
 
-如需替换为 AI 生成的图片，可以使用下面的提示词。
+如需再次生成，可以使用下面的提示词。
 
 ### 1. Banner / 封面（1200 × 420）
 

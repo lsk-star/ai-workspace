@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/images/banner.svg" width="100%" alt="ai-workspace" />
+<img src="docs/images/banner.png" width="100%" alt="ai-workspace" />
 
 <h1>ai-workspace</h1>
 
@@ -47,6 +47,17 @@
 - **不是代码仓库**：业务源码仍在各自工程；
 - **不是团队协作平台**：目前面向个人开发者，没有账号、权限与多人实时编辑；
 - **不会自动记住一切**：资料需要被维护和读取，上下文才能真正复用。
+
+### 工作流程
+
+![工作流程](docs/images/architecture.png)
+
+1. 项目自己的 `AGENTS.md` 指向工作区；
+2. Agent 读取工作区 `AGENTS.md`；
+3. 按项目类型读取 `harness/frontend.md` 或 `harness/backend.md`；
+4. 用 `knowledge-index.json` 和 `content/` 检索项目知识；
+5. 在业务工程中实现与验证；
+6. 把设计、取舍与验证结论写回工作区。
 
 ## ✨ 功能特性
 
