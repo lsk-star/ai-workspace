@@ -105,9 +105,8 @@ pnpm dev
 
 ### 3. 初始化你的项目
 
-1. 修改 `content/空间配置/空间总览.md`，写清项目名称与目标；
-2. 在「空间配置 / Harness 配置」中填写前端、后端 Harness；
-3. 把「开始阅读 / 快速开始」中的接入片段加入前端 / 后端工程的 `AGENTS.md`。
+1. 在「空间配置 / Harness 配置」中填写前端、后端 Harness；
+2. 把「开始阅读 / 快速开始」中的接入片段加入前端 / 后端工程的 `AGENTS.md`。
 
 ### 4. 生成检索索引
 
@@ -170,6 +169,4 @@ ai-workspace/
 本项目基于 [Apache License 2.0](LICENSE) 开源。
 
 ## 🙏 致谢
-
-- README 布局参考 [DataWhale hello-agents](https://github.com/datawhalechina/hello-agents)；
 - 感谢所有使用和反馈 ai-workspace 的开发者。
