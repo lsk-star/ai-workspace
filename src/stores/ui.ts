@@ -1,10 +1,12 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useLocalStorage, useMediaQuery } from '@vueuse/core'
 
 export const DEFAULT_LEFT_WIDTH = 262
 export const MIN_LEFT_WIDTH = 240
 export const MAX_LEFT_WIDTH = 440
+
+export type ThemeMode = 'system' | 'light' | 'dark'
 
 export const useUiStore = defineStore('ui', () => {
   const leftCollapsed = useLocalStorage<boolean>('aw2:leftCollapsed', false)
@@ -12,6 +14,13 @@ export const useUiStore = defineStore('ui', () => {
   const mobileTreeOpen = ref(false)
   const searchPending = ref(false)
   const isNarrow = useMediaQuery('(max-width: 1023px)')
+  const themeMode = useLocalStorage<ThemeMode>('aw2:theme', 'system')
+  const prefersDark = useMediaQuery('(prefers-color-scheme: dark)')
+
+  /** 深色阅读模式：跟随系统或手动指定 */
+  const isDark = computed(
+    () => themeMode.value === 'dark' || (themeMode.value === 'system' && prefersDark.value),
+  )
 
   if (leftWidth.value < MIN_LEFT_WIDTH || leftWidth.value > MAX_LEFT_WIDTH) {
     leftWidth.value = DEFAULT_LEFT_WIDTH
@@ -45,6 +54,9 @@ export const useUiStore = defineStore('ui', () => {
     leftWidth,
     mobileTreeOpen,
     searchPending,
+    isNarrow,
+    themeMode,
+    isDark,
     toggleLeft,
     setLeftWidth,
     focusSearch,

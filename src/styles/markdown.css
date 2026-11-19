@@ -1,6 +1,6 @@
 /* Markdown 阅读样式：白纸、黑灰、无红 */
 .markdown-body {
-  color: #2a2c31;
+  color: var(--aw-text-2);
   font-size: var(--aw-body-size);
   line-height: var(--aw-body-leading);
   word-break: break-word;
@@ -61,18 +61,18 @@
 
 .markdown-body a {
   color: var(--aw-text);
-  border-bottom: 1px solid #cfd2d9;
+  border-bottom: 1px solid var(--aw-line-strong);
   transition: border-color var(--aw-transition), color var(--aw-transition);
 }
 
 .markdown-body a:hover {
-  color: #000;
-  border-bottom-color: #6b6e76;
+  color: var(--aw-accent-hover);
+  border-bottom-color: var(--aw-text-3);
 }
 
 .markdown-body strong {
   font-weight: 650;
-  color: #111215;
+  color: var(--aw-strong);
 }
 
 .markdown-body em {
@@ -101,15 +101,15 @@
 }
 
 .markdown-body li::marker {
-  color: #9a9ca3;
+  color: var(--aw-text-3);
 }
 
 .markdown-body blockquote {
   margin: 1.35em 0;
   padding: 0.95em 1.2em;
   color: var(--aw-text-2);
-  background: #fafafb;
-  border-left: 3px solid #d9dbe2;
+  background: var(--aw-bg-soft);
+  border-left: 3px solid var(--aw-line-strong);
   border-radius: 0 8px 8px 0;
 }
 
@@ -133,9 +133,9 @@
   font-size: 0.86em;
   padding: 0.16em 0.42em;
   border-radius: 5px;
-  background: #f4f4f5;
-  border: 1px solid #ececee;
-  color: #24262b;
+  background: var(--aw-bg-hover);
+  border: 1px solid var(--aw-line);
+  color: var(--aw-text);
   white-space: break-spaces;
 }
 
@@ -143,7 +143,7 @@
   margin: 1.3em 0;
   padding: 18px 20px;
   overflow: auto;
-  background: #fafafb;
+  background: var(--aw-bg-soft);
   border: 1px solid var(--aw-line);
   border-radius: 10px;
   line-height: 1.7;
@@ -153,7 +153,7 @@
   padding: 0;
   background: transparent;
   border: 0;
-  color: #2a2c31;
+  color: var(--aw-text-2);
   font-size: 13.5px;
   white-space: pre;
 }
@@ -170,7 +170,7 @@
 }
 
 .markdown-body thead th {
-  background: #fafafb;
+  background: var(--aw-bg-soft);
   color: var(--aw-text-2);
   font-weight: 600;
   text-align: left;
@@ -194,7 +194,7 @@
 }
 
 .markdown-body tbody tr:hover td {
-  background: #fcfcfd;
+  background: var(--aw-bg-hover);
 }
 
 .markdown-body img {
@@ -202,7 +202,7 @@
   height: auto;
   border-radius: 10px;
   border: 1px solid var(--aw-line);
-  background: #fff;
+  background: var(--aw-bg);
 }
 
 .markdown-body img[data-broken='true'] {
@@ -213,8 +213,8 @@
   color: var(--aw-text-3);
   font-size: 13.5px;
   text-align: center;
-  border: 1px dashed #dcdee4;
-  background: #fafafb;
+  border: 1px dashed var(--aw-line-strong);
+  background: var(--aw-bg-soft);
 }
 
 .markdown-body figure {
@@ -250,11 +250,11 @@
   border: 1px solid var(--aw-line);
   border-bottom-width: 2px;
   border-radius: 5px;
-  background: #fafafb;
+  background: var(--aw-bg-soft);
 }
 
 .markdown-body mark {
-  background: #f0f2f7;
+  background: var(--aw-sel);
   color: var(--aw-text);
   padding: 0 3px;
   border-radius: 3px;
@@ -304,4 +304,49 @@
 
 .markdown-body .hljs-attribute {
   color: #6d5a35;
+}
+
+/* 深色模式：代码高亮换成低饱和的亮色 */
+:root.dark .markdown-body .hljs {
+  color: var(--aw-text-2);
+}
+
+:root.dark .markdown-body .hljs-keyword,
+:root.dark .markdown-body .hljs-selector-tag,
+:root.dark .markdown-body .hljs-literal {
+  color: #9fb0d6;
+}
+
+:root.dark .markdown-body .hljs-string,
+:root.dark .markdown-body .hljs-attr {
+  color: #96c7a4;
+}
+
+:root.dark .markdown-body .hljs-title,
+:root.dark .markdown-body .hljs-section,
+:root.dark .markdown-body .hljs-function .hljs-title {
+  color: #b3a8d9;
+}
+
+:root.dark .markdown-body .hljs-comment {
+  color: #6d707a;
+  font-style: italic;
+}
+
+:root.dark .markdown-body .hljs-number,
+:root.dark .markdown-body .hljs-meta {
+  color: #d0b078;
+}
+
+:root.dark .markdown-body .hljs-built_in,
+:root.dark .markdown-body .hljs-type {
+  color: #8fc0d0;
+}
+
+:root.dark .markdown-body .hljs-tag {
+  color: #8fc0d0;
+}
+
+:root.dark .markdown-body .hljs-attribute {
+  color: #d0b078;
 }

@@ -141,7 +141,7 @@ function resetWidth(): void {
   min-height: 0;
   position: relative;
   overflow: hidden;
-  background: #fff;
+  background: var(--aw-bg);
 }
 
 .pane-left {
@@ -168,7 +168,7 @@ function resetWidth(): void {
 
 .resizer:hover::after,
 .resizer.active::after {
-  background: #e3e5ea;
+  background: var(--aw-line-strong);
 }
 
 .main-shell {
@@ -215,7 +215,7 @@ function resetWidth(): void {
   border: 1px solid var(--aw-line);
   border-left: 0;
   border-radius: 0 8px 8px 0;
-  background: #fff;
+  background: var(--aw-bg);
   color: var(--aw-text-3);
   cursor: pointer;
   z-index: 12;

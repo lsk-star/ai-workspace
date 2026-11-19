@@ -288,7 +288,7 @@ watch(
   display: flex;
   flex-direction: column;
   min-width: 0;
-  background: #fff;
+  background: var(--aw-bg);
   border-right: 1px solid var(--aw-line);
   overflow-y: auto;
   overflow-x: hidden;
@@ -306,7 +306,7 @@ watch(
   right: 3px;
   width: 4px;
   border-radius: 999px;
-  background: #d6d8de;
+  background: var(--aw-scroll);
   opacity: 0.45;
   pointer-events: auto;
   transition: opacity 150ms ease, background 150ms ease;
@@ -321,11 +321,11 @@ watch(
 }
 
 .scroll-thumb:hover {
-  background: #b9bcc4;
+  background: var(--aw-scroll-hover);
 }
 
 .scroll-thumb.dragging {
-  background: #a8abb4;
+  background: var(--aw-scroll-hover);
   cursor: grabbing;
 }
 
@@ -478,7 +478,7 @@ watch(
 }
 
 .node.is-dir .node-icon {
-  color: #a6a9b1;
+  color: var(--aw-text-4);
 }
 
 .node-name {
@@ -569,7 +569,7 @@ watch(
   gap: 8px;
   padding: 0 14px 0 22px;
   border-top: 1px solid var(--aw-line-soft);
-  background: #fff;
+  background: var(--aw-bg);
   font-size: 12.5px;
   color: var(--aw-text-3);
 }

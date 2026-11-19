@@ -87,6 +87,7 @@ function toDoc(file: string, raw: string): DocMeta {
     order: Number(data.order ?? 100),
     plain: stripMarkdown(body),
     harness: data.harness === 'true',
+    configCenter: data.configCenter === 'true',
   }
 }
 
@@ -190,6 +191,16 @@ export function ancestorPaths(path: string): string[] {
 
 export function findDoc(path: string): DocMeta | undefined {
   return docMap.get(path)
+}
+
+/** 阅读顺序（分类 → order → 标题）中的前一篇与后一篇 */
+export function neighborsOf(path: string): { prev: DocMeta | null; next: DocMeta | null } {
+  const index = docs.findIndex((doc) => doc.path === path)
+  if (index < 0) return { prev: null, next: null }
+  return {
+    prev: index > 0 ? (docs[index - 1] ?? null) : null,
+    next: index < docs.length - 1 ? (docs[index + 1] ?? null) : null,
+  }
 }
 
 export function entryDoc(): DocMeta {

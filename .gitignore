@@ -11,3 +11,6 @@ shots/
 PLAN.md
 scripts/screenshot.py
 .acl-recovery/
+.tmp-research/
+codex_*.html
+public/search-index.json

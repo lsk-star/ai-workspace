@@ -32,7 +32,7 @@ function goHome(): void {
   gap: 8px;
   padding: 40px 24px;
   text-align: center;
-  background: #fff;
+  background: var(--aw-bg);
 }
 
 .code {

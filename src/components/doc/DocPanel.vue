@@ -5,9 +5,11 @@ import { CopyOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import MarkdownPreview from '@/components/doc/MarkdownPreview.vue'
 import HarnessPanel from '@/components/doc/HarnessPanel.vue'
+import ConfigCenterPanel from '@/components/doc/ConfigCenterPanel.vue'
 import { useDocStore } from '@/stores/doc'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { useMarkdownRender } from '@/composables/useMarkdownRender'
+import { neighborsOf } from '@/lib/content'
 import { setDocScrollTarget } from '@/composables/useDocScroll'
 
 const router = useRouter()
@@ -16,6 +18,12 @@ const workspace = useWorkspaceStore()
 
 const scrollEl = ref<HTMLElement | null>(null)
 const crumbs = computed(() => doc.doc?.folderPath.split('/') ?? [])
+
+const neighbors = computed(() => neighborsOf(doc.path))
+
+async function goNeighbor(path: string): Promise<void> {
+  await router.push({ name: 'doc', params: { pathMatch: path.split('/') } })
+}
 
 const rendered = useMarkdownRender(
   computed(() => doc.doc?.body ?? ''),
@@ -85,6 +93,8 @@ function backHome(): void {
 
           <HarnessPanel v-if="doc.doc.harness" />
 
+          <ConfigCenterPanel v-else-if="doc.doc.configCenter" />
+
           <template v-else>
             <img
               v-if="doc.doc.cover"
@@ -120,6 +130,28 @@ function backHome(): void {
             <div v-if="doc.doc.part" class="part-label">{{ doc.doc.part }}</div>
 
             <MarkdownPreview :html="renderedHtml" />
+
+            <nav v-if="neighbors.prev || neighbors.next" class="doc-neighbors">
+              <button
+                v-if="neighbors.prev"
+                class="neighbor"
+                type="button"
+                @click="goNeighbor(neighbors.prev.path)"
+              >
+                <span class="neighbor-label">← 上一篇</span>
+                <span class="neighbor-title">{{ neighbors.prev.title }}</span>
+              </button>
+              <span v-else />
+              <button
+                v-if="neighbors.next"
+                class="neighbor right"
+                type="button"
+                @click="goNeighbor(neighbors.next.path)"
+              >
+                <span class="neighbor-label">下一篇 →</span>
+                <span class="neighbor-title">{{ neighbors.next.title }}</span>
+              </button>
+            </nav>
           </template>
         </div>
       </div>
@@ -133,7 +165,7 @@ function backHome(): void {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  background: #fff;
+  background: var(--aw-bg);
 }
 
 .doc-missing {
@@ -249,14 +281,60 @@ function backHome(): void {
   padding: 0 10px;
   border: 1px solid var(--aw-line);
   border-radius: 6px;
-  background: #fff;
+  background: var(--aw-bg);
   color: var(--aw-text-2);
   font-size: 12.5px;
   cursor: pointer;
 }
 
 .path-btn:hover {
-  border-color: #c9ccd3;
+  border-color: var(--aw-line-strong);
+  color: var(--aw-text);
+}
+
+.doc-neighbors {
+  margin-top: 44px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.neighbor {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 13px 16px;
+  border: 1px solid var(--aw-line);
+  border-radius: 10px;
+  background: var(--aw-bg);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--aw-transition), background var(--aw-transition);
+}
+
+.neighbor:hover {
+  border-color: var(--aw-line-strong);
+  background: var(--aw-bg-soft);
+}
+
+.neighbor.right {
+  text-align: right;
+  align-items: flex-end;
+}
+
+.neighbor-label {
+  font-size: 12px;
+  color: var(--aw-text-3);
+}
+
+.neighbor-title {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--aw-text);
 }
 
@@ -309,6 +387,15 @@ function backHome(): void {
   .doc-meta {
     flex-direction: column;
     gap: 10px;
+  }
+
+  .doc-neighbors {
+    grid-template-columns: 1fr;
+  }
+
+  .neighbor.right {
+    text-align: left;
+    align-items: flex-start;
   }
 }
 </style>

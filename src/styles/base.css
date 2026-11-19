@@ -33,7 +33,7 @@ select {
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #dcdce2 transparent;
+  scrollbar-color: var(--aw-scroll) transparent;
 }
 
 *::-webkit-scrollbar {
@@ -42,14 +42,14 @@ select {
 }
 
 *::-webkit-scrollbar-thumb {
-  background: #dedee4;
+  background: var(--aw-scroll);
   border-radius: 999px;
   border: 3px solid transparent;
   background-clip: content-box;
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background: #c9c9d2;
+  background: var(--aw-scroll-hover);
   background-clip: content-box;
 }
 
@@ -63,7 +63,7 @@ a {
 }
 
 a:hover {
-  color: #000;
+  color: var(--aw-accent-hover);
 }
 
 button {
@@ -101,7 +101,7 @@ button {
 }
 
 .ant-btn-primary:not(:disabled):hover {
-  background: #000 !important;
+  background: var(--aw-accent-hover) !important;
 }
 
 .ant-btn {
@@ -118,8 +118,8 @@ button {
 .ant-input-affix-wrapper-focused,
 .ant-input:focus,
 .ant-select-focused .ant-select-selector {
-  border-color: #b9bcc4 !important;
-  box-shadow: 0 0 0 3px rgba(31, 32, 36, 0.06) !important;
+  border-color: var(--aw-line-strong) !important;
+  box-shadow: 0 0 0 3px var(--aw-focus-ring) !important;
 }
 
 .ant-modal-content {

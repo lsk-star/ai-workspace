@@ -124,7 +124,7 @@ function backToTop(): void {
   flex-direction: column;
   min-width: 0;
   padding: 26px 24px 20px 26px;
-  background: #fff;
+  background: var(--aw-bg);
 }
 
 .toc-title {

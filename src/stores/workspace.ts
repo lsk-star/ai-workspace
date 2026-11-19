@@ -2,7 +2,8 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { useLocalStorage } from '@vueuse/core'
 import type { RecentDoc, SearchHit } from '@/types/content'
-import { SPACE, ancestorPaths, categories, docs, searchDocs, snippetOf } from '@/lib/content'
+import { SPACE, ancestorPaths, categories, docs } from '@/lib/content'
+import { preloadSearchIndex, searchDocs, snippetOf } from '@/lib/search'
 
 const DEFAULT_EXPANDED = [
   '开始阅读',
@@ -13,6 +14,8 @@ const DEFAULT_EXPANDED = [
 ]
 
 export const useWorkspaceStore = defineStore('workspace', () => {
+  preloadSearchIndex()
+
   const query = ref('')
   const scope = useLocalStorage<string>('aw2:scope', '全部资料')
   const expandedKeys = useLocalStorage<string[]>('aw2:expanded-v2', DEFAULT_EXPANDED)

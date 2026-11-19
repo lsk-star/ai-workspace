@@ -20,6 +20,8 @@ export interface DocMeta {
   plain: string
   /** 是否为 Harness 配置入口（工作区 / 前端 / 后端三份配置） */
   harness: boolean
+  /** 是否为配置中心入口（workspace.json 的表单编辑页） */
+  configCenter: boolean
 }
 
 export interface Heading {

@@ -5,6 +5,10 @@
   --aw-bg-hover: #f4f4f6;
   --aw-line: #ececee;
   --aw-line-soft: #f3f3f5;
+  --aw-line-strong: #c9ccd3;
+  --aw-scroll: #dedee4;
+  --aw-scroll-hover: #c9c9d2;
+  --aw-focus-ring: rgba(31, 32, 36, 0.06);
 
   /* 选中态：浅灰蓝 */
   --aw-sel: #eef1f7;
@@ -15,6 +19,7 @@
   --aw-text-2: #4b4d54;
   --aw-text-3: #8b8e96;
   --aw-text-4: #b6b8bf;
+  --aw-strong: #111215;
 
   /* 强调：黑与灰，不使用红色 */
   --aw-accent: #1f2024;
@@ -59,4 +64,47 @@
   --aw-body-leading: 1.9;
 
   --aw-transition: 150ms cubic-bezier(0.2, 0, 0, 1);
+
+  color-scheme: light;
+}
+
+/* 深色阅读模式：`html.dark` 由主题偏好切换 */
+:root.dark {
+  --aw-bg: #151619;
+  --aw-bg-soft: #1c1d21;
+  --aw-bg-hover: #232429;
+  --aw-line: #2a2b31;
+  --aw-line-soft: #232428;
+  --aw-line-strong: #3d3e46;
+  --aw-scroll: #33343a;
+  --aw-scroll-hover: #45464d;
+  --aw-focus-ring: rgba(210, 214, 224, 0.08);
+
+  --aw-sel: #262a33;
+  --aw-sel-strong: #2e3340;
+
+  --aw-text: #e8e9ec;
+  --aw-text-2: #b8bac3;
+  --aw-text-3: #82848d;
+  --aw-text-4: #5c5e66;
+  --aw-strong: #f4f5f7;
+
+  --aw-accent: #d6d8de;
+  --aw-accent-hover: #ffffff;
+  --aw-accent-weak: #24252a;
+
+  --aw-tag-bg: #2a2620;
+  --aw-tag-text: #c9a86a;
+  --aw-tag-line: #453d2d;
+
+  --aw-green: #6fae8a;
+  --aw-green-weak: #1e2b24;
+  --aw-amber: #c9a86a;
+  --aw-amber-weak: #2a2519;
+
+  --aw-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --aw-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.32);
+  --aw-shadow-md: 0 10px 30px rgba(0, 0, 0, 0.4);
+
+  color-scheme: dark;
 }

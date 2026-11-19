@@ -13,6 +13,7 @@ import backendHarness from '/harness/backend.md?raw'
 import MarkdownPreview from '@/components/doc/MarkdownPreview.vue'
 import { useDocStore } from '@/stores/doc'
 import { useMarkdownRender } from '@/composables/useMarkdownRender'
+import { formatUpdated, useFileEditor } from '@/composables/useFileEditor'
 
 type TargetKey = 'workspace' | 'frontend' | 'backend'
 type Mode = 'preview' | 'edit'
@@ -53,10 +54,10 @@ const doc = useDocStore()
 const target = ref<TargetKey>('workspace')
 const mode = ref<Mode>('preview')
 const draft = ref('')
-const contents = ref<Record<string, string>>({})
-const updatedAt = ref<Record<string, string>>({})
-const loading = ref(true)
-const saving = ref(false)
+
+const editor = useFileEditor(targets)
+const { contents, updatedAt, loading, saving } = editor
+const HARNESS_LIMIT = editor.limit
 
 const current = computed(() => targets.find((item) => item.key === target.value) ?? targets[0])
 const currentContent = computed(
@@ -64,6 +65,15 @@ const currentContent = computed(
 )
 const dirty = computed(
   () => mode.value === 'edit' && draft.value !== contents.value[target.value],
+)
+const previewOverLimit = computed(() => currentContent.value.length > HARNESS_LIMIT)
+const draftOverLimit = computed(() => draft.value.length > HARNESS_LIMIT)
+const sizeText = computed(() => {
+  const length = mode.value === 'edit' ? draft.value.length : currentContent.value.length
+  return `${length} / ${HARNESS_LIMIT} 字符`
+})
+const sizeOver = computed(() =>
+  mode.value === 'edit' ? draftOverLimit.value : previewOverLimit.value,
 )
 
 const rendered = useMarkdownRender(
@@ -78,40 +88,13 @@ watch(
   { immediate: true },
 )
 
-function formatUpdated(value?: string): string {
-  if (!value) return ''
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return ''
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(
-    date.getHours(),
-  )}:${pad(date.getMinutes())}`
-}
-
-async function loadTarget(item: HarnessTarget): Promise<void> {
-  try {
-    const response = await fetch(`/api/harness?target=${item.key}`)
-    if (!response.ok) throw new Error('未提供写入服务')
-    const payload = (await response.json()) as {
-      ok?: boolean
-      content?: string
-      updated?: string
-    }
-    if (!payload.ok || typeof payload.content !== 'string') {
-      throw new Error('读取失败')
-    }
-    contents.value = { ...contents.value, [item.key]: payload.content }
-    if (payload.updated) {
-      updatedAt.value = { ...updatedAt.value, [item.key]: payload.updated }
-    }
-  } catch {
-    contents.value = { ...contents.value, [item.key]: item.fallback }
-  }
-}
-
-onMounted(async () => {
-  await Promise.all(targets.map(loadTarget))
-  loading.value = false
+onMounted(() => {
+  void editor.loadAll({
+    workspace: workspaceAgents,
+    frontend: frontendHarness,
+    backend: backendHarness,
+  })
+  window.addEventListener('keydown', onKeydown)
 })
 
 watch(target, () => {
@@ -144,31 +127,22 @@ async function save(): Promise<void> {
     mode.value = 'preview'
     return
   }
-  saving.value = true
-  try {
-    const response = await fetch(`/api/harness?target=${target.value}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: draft.value }),
-    })
-    const payload = (await response.json()) as { ok?: boolean; error?: string }
-    if (!response.ok || !payload.ok) {
-      throw new Error(payload.error || '写入失败')
-    }
-    contents.value = { ...contents.value, [target.value]: draft.value }
-    updatedAt.value = { ...updatedAt.value, [target.value]: new Date().toISOString() }
+  if (draftOverLimit.value) {
+    message.error(
+      `超过 ${HARNESS_LIMIT} 字符上限：请把稳定的细节拆到 harness/ 附属文档，主文件只留清单`,
+    )
+    return
+  }
+  const result = await editor.save(target.value, draft.value)
+  if (result.ok) {
     mode.value = 'preview'
     message.success(`已写入 ${current.value.file}`)
-  } catch (error) {
-    const detail =
-      error instanceof Error && !(error instanceof TypeError) ? error.message : ''
+  } else {
     message.error(
-      detail
-        ? `写入失败：${detail}`
+      result.error
+        ? `写入失败：${result.error}`
         : '当前环境不支持直接写入，请复制或下载后手动保存',
     )
-  } finally {
-    saving.value = false
   }
 }
 
@@ -176,24 +150,12 @@ function currentText(): string {
   return mode.value === 'edit' ? draft.value : currentContent.value
 }
 
-async function copyContent(): Promise<void> {
-  try {
-    await navigator.clipboard.writeText(currentText())
-    message.success(`已复制 ${current.value.file}`)
-  } catch {
-    message.warning('浏览器拒绝访问剪贴板')
-  }
+function copyContent(): void {
+  void editor.copyText(currentText(), current.value.file)
 }
 
 function download(): void {
-  const blob = new Blob([currentText()], { type: 'text/markdown;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = current.value.file.split('/').pop() || 'AGENTS.md'
-  link.click()
-  URL.revokeObjectURL(url)
-  message.success('已下载配置文件')
+  editor.downloadText(currentText(), current.value.file)
 }
 
 function onKeydown(event: KeyboardEvent): void {
@@ -204,7 +166,6 @@ function onKeydown(event: KeyboardEvent): void {
   }
 }
 
-onMounted(() => window.addEventListener('keydown', onKeydown))
 onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 </script>
 
@@ -214,7 +175,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
       <div class="head-copy">
         <span class="eyebrow">PERSONAL HARNESS</span>
         <h1>Harness 配置</h1>
-        <p>工作区、前端、后端的个人规则。保存后直接写入对应文件，下一次 AI 会话即可生效。</p>
+        <p>工作区、前端、后端的个人规则。保存后直接写入对应文件，下一次 AI 会话即可生效；单份主文件上限 {{ HARNESS_LIMIT }} 字符，超出请拆分到附属文档。</p>
       </div>
 
       <div class="head-actions">
@@ -265,6 +226,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
       <span v-if="updatedAt[target]" class="file-updated">
         更新于 {{ formatUpdated(updatedAt[target]) }}
       </span>
+      <span class="file-size" :class="{ over: sizeOver }">{{ sizeText }}</span>
       <span v-if="dirty" class="file-dirty">未保存</span>
       <div class="file-actions">
         <a-button size="small" @click="copyContent">
@@ -287,6 +249,14 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
     </div>
 
     <div v-else class="editor">
+      <a-alert
+        v-if="draftOverLimit"
+        class="limit-alert"
+        type="warning"
+        show-icon
+        :message="`当前 ${draft.length} 字符，超过 ${HARNESS_LIMIT} 上限`"
+        description="把稳定的细节拆到 harness/frontend/、harness/backend/ 下的附属文档（按主题命名），主文件只留「附属文档清单」；精简后再保存。"
+      />
       <a-textarea
         v-model:value="draft"
         class="code-area"
@@ -296,7 +266,9 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
       />
       <div class="edit-foot">
         <span>保存后直接写入 <code>{{ current.file }}</code>；也可复制或下载后手动提交。</span>
-        <span>{{ draft.length }} 字符 · ⌘/Ctrl+S 保存</span>
+        <span :class="{ 'over-text': draftOverLimit }">
+          {{ draft.length }} / {{ HARNESS_LIMIT }} 字符 · ⌘/Ctrl+S 保存
+        </span>
       </div>
     </div>
   </div>
@@ -366,19 +338,19 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
   padding: 13px 15px;
   border: 1px solid var(--aw-line);
   border-radius: 10px;
-  background: #fff;
+  background: var(--aw-bg);
   text-align: left;
   cursor: pointer;
   transition: border-color var(--aw-transition), background var(--aw-transition);
 }
 
 .target:hover {
-  border-color: #c9ccd3;
-  background: #fcfcfd;
+  border-color: var(--aw-line-strong);
+  background: var(--aw-bg-soft);
 }
 
 .target.active {
-  border-color: #b9bcc4;
+  border-color: var(--aw-line-strong);
   background: var(--aw-bg-soft);
 }
 
@@ -404,7 +376,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
   border: 1px solid var(--aw-line);
   border-bottom: 0;
   border-radius: 10px 10px 0 0;
-  background: #fdfdfe;
+  background: var(--aw-bg-soft);
   font-size: 12.5px;
   color: var(--aw-text-3);
 }
@@ -417,6 +389,25 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 
 .file-updated {
   color: var(--aw-text-4);
+}
+
+.file-size {
+  color: var(--aw-text-4);
+  font-variant-numeric: tabular-nums;
+}
+
+.file-size.over {
+  color: #d46b08;
+  font-weight: 600;
+}
+
+.limit-alert {
+  margin: 14px 18px 0;
+}
+
+.over-text {
+  color: #d46b08;
+  font-weight: 600;
 }
 
 .file-dirty {
@@ -437,7 +428,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 .editor {
   border: 1px solid var(--aw-line);
   border-radius: 0 0 10px 10px;
-  background: #fff;
+  background: var(--aw-bg);
 }
 
 .preview {
@@ -468,7 +459,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
   flex-wrap: wrap;
   padding: 12px 18px;
   border-top: 1px solid var(--aw-line-soft);
-  background: #fdfdfe;
+  background: var(--aw-bg-soft);
   font-size: 12.5px;
   color: var(--aw-text-3);
 }

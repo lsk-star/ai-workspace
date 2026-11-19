@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const contentRoot = path.join(root, 'content')
 const output = path.join(root, 'knowledge-index.json')
+const searchOutput = path.join(root, 'public', 'search-index.json')
 
 function parseFrontMatter(raw) {
   const cleaned = raw.replace(/^\uFEFF/, '')
@@ -73,6 +74,7 @@ const files = (await walk(contentRoot)).sort((a, b) =>
 )
 
 const documents = []
+const bodyByPath = new Map()
 for (const file of files) {
   const raw = await fs.readFile(file, 'utf8')
   const { data, body } = parseFrontMatter(raw)
@@ -97,6 +99,7 @@ for (const file of files) {
     order: Number(data.order ?? 100),
     headings: headingsOf(stripCodeFences(body)),
   })
+  bodyByPath.set(relative, body)
 }
 
 documents.sort((a, b) => {
@@ -154,4 +157,95 @@ async function writeIfChanged() {
 }
 
 await writeIfChanged()
+
+// ---------------------------------------------------------------------------
+// 搜索索引（页面用）：中文二字分词 + 英文单词的倒排表，压缩为扁平数组。
+// token -> [docIdx, count, docIdx, count, ...]；命中数超过六成文档的 token 视为
+// 停用词丢弃（如「的」「是」），避免索引膨胀且对检索无增益。
+// ---------------------------------------------------------------------------
+
+function plainOf(body) {
+  return body
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/!\[[^\]]*]\([^)]*\)/g, ' ')
+    .replace(/\[([^\]]*)]\([^)]*\)/g, '$1')
+    .replace(/[#>*`_~|]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function tokenize(text) {
+  const tokens = new Map()
+  for (const word of text.toLowerCase().match(/[a-z0-9][a-z0-9._-]*/g) || []) {
+    if (word.length < 2 || word.length > 32) continue
+    tokens.set(word, (tokens.get(word) || 0) + 1)
+  }
+  for (const run of text.match(/[\u4e00-\u9fff]+/g) || []) {
+    for (let i = 0; i + 2 <= run.length; i += 1) {
+      const gram = run.slice(i, i + 2)
+      tokens.set(gram, (tokens.get(gram) || 0) + 1)
+    }
+  }
+  return tokens
+}
+
+function buildSearchIndex(docList) {
+  const docPaths = docList.map((doc) => doc.path)
+  const postings = new Map()
+  docList.forEach((doc, index) => {
+    const body = bodyByPath.get(doc.path) || ''
+    for (const [token, count] of tokenize(`${doc.title} ${doc.summary} ${plainOf(body)}`)) {
+      if (!postings.has(token)) postings.set(token, [])
+      postings.get(token).push(index, count)
+    }
+  })
+  const total = docList.length
+  const tokens = {}
+  for (const [token, list] of postings) {
+    if (list.length / 2 > total * 0.6) continue
+    tokens[token] = list
+  }
+  return { generatedAt: new Date().toISOString(), docs: docPaths, tokens }
+}
+
+const searchIndex = buildSearchIndex(documents)
+const searchSerialized = JSON.stringify(searchIndex)
+
+async function writeSearchIfChanged() {
+  const previous = await readIfExists(searchOutput)
+  if (previous) {
+    const previousShape = previous.replace(/"generatedAt":"[^"]*"/, '')
+    const nextShape = searchSerialized.replace(/"generatedAt":"[^"]*"/, '')
+    if (previousShape === nextShape) {
+      console.log(
+        `search-index.json 未变化 → ${searchIndex.docs.length} docs, ${
+          Object.keys(searchIndex.tokens).length
+        } tokens`,
+      )
+      return
+    }
+    const previousTime = previous.match(/"generatedAt":"([^"]*)"/)?.[1]
+    if (previousTime) {
+      await fs.writeFile(
+        searchOutput,
+        searchSerialized.replace(/"generatedAt":"[^"]*"/, `"generatedAt":"${previousTime}"`),
+        'utf8',
+      )
+      console.log(
+        `search-index.json → ${searchIndex.docs.length} docs, ${
+          Object.keys(searchIndex.tokens).length
+        } tokens`,
+      )
+      return
+    }
+  }
+  await fs.writeFile(searchOutput, searchSerialized, 'utf8')
+  console.log(
+    `search-index.json → ${searchIndex.docs.length} docs, ${
+      Object.keys(searchIndex.tokens).length
+    } tokens`,
+  )
+}
+
+await writeSearchIfChanged()
 

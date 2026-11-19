@@ -10,10 +10,15 @@ const HARNESS_FILES: Record<string, string> = {
   workspace: 'AGENTS.md',
   frontend: path.join('harness', 'frontend.md'),
   backend: path.join('harness', 'backend.md'),
+  projects: 'workspace.json',
 }
+
+/** 单份 Harness 主文件的字符上限；超出应拆分到 harness/ 下的附属文档 */
+const HARNESS_LIMIT = 2500
 
 /**
  * 本地开发/预览服务：读取并写回工作区与前后端 Harness 配置。
+ * 写入超过 HARNESS_LIMIT 会被拒绝，避免 Harness 膨胀拖慢每次会话。
  * 静态托管时该接口不存在，前端会退化为内置模板 + 复制/下载。
  */
 function harnessApiPlugin(): Plugin {
@@ -107,6 +112,13 @@ function harnessApiPlugin(): Plugin {
           const payload = JSON.parse(raw || '{}') as { content?: unknown }
           const content = typeof payload.content === 'string' ? payload.content : ''
           if (!content.trim()) throw new Error('内容不能为空')
+          if (content.length > HARNESS_LIMIT) {
+            send(400, {
+              ok: false,
+              error: `内容 ${content.length} 字符，超过 ${HARNESS_LIMIT} 上限；请把细节拆分到 harness/frontend/、harness/backend/ 附属文档，主文件只留清单`,
+            })
+            return
+          }
           await fs.mkdir(path.dirname(file), { recursive: true })
           await fs.writeFile(file, `${content.trimEnd()}\n`, 'utf8')
           send(200, { ok: true, target, file: relativeFile })
