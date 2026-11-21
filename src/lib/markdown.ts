@@ -14,6 +14,22 @@ const md = new MarkdownIt({
 // 关闭“模糊链接”：否则 AGENTS.md、backend.md 这类文件名会被当成网址
 md.linkify.set({ fuzzyLink: false })
 
+/**
+ * mermaid 代码块不参与语法高亮，输出成占位结构：
+ * 源码放在隐藏的 pre.mermaid-source 里，由 MarkdownPreview 挂载后异步渲染成 SVG。
+ * 保留源码是为了渲染失败时回退展示，以及深浅色主题切换时重新着色。
+ */
+const defaultFence = md.renderer.rules.fence
+md.renderer.rules.fence = (tokens, idx, options, env, self) => {
+  const token = tokens[idx]
+  const info = (token?.info || '').trim().split(/\s+/)[0]?.toLowerCase() ?? ''
+  if (info === 'mermaid') {
+    const source = md.utils.escapeHtml(token?.content ?? '')
+    return `<div class="mermaid-block"><pre class="mermaid-source">${source}</pre></div>`
+  }
+  return defaultFence ? defaultFence(tokens, idx, options, env, self) : ''
+}
+
 md.options.highlight = (code: string, lang: string): string => {
   const language = lang && hljs.getLanguage(lang) ? lang : ''
   try {

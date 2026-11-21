@@ -1,14 +1,7 @@
-import { ref } from 'vue'
+import { computed, ref, toValue } from 'vue'
+import type { MaybeRefOrGetter } from 'vue'
 import { message } from 'ant-design-vue'
-
-/** 单份可编辑配置主文件的字符上限；超出应拆分到附属文档 */
-export const HARNESS_LIMIT = 2500
-
-export interface FileEditorTarget {
-  key: string
-  /** 展示用的文件路径，如 harness/frontend.md */
-  file: string
-}
+import { normalizeTargets, type FileEditorTarget, type RuleTarget } from '@/lib/harness'
 
 export interface SaveResult {
   ok: boolean
@@ -19,20 +12,41 @@ export interface SaveResult {
 /**
  * 页面内编辑本地配置文件的通用逻辑（开发 / 预览服务的 /api/harness 通道）。
  * 静态托管没有写接口：读取退化为内置模板，保存交由调用方提示复制 / 下载。
+ * targets 支持响应式清单（Harness 规则下拉会动态增删）。
  */
-export function useFileEditor(targets: FileEditorTarget[], limit = HARNESS_LIMIT) {
+export function useFileEditor(targets: MaybeRefOrGetter<FileEditorTarget[]>) {
+  const targetList = computed(() => toValue(targets))
   const contents = ref<Record<string, string>>({})
   const updatedAt = ref<Record<string, string>>({})
   const loading = ref(true)
   const saving = ref(false)
 
+  function limitOf(key: string): number {
+    return targetList.value.find((target) => target.key === key)?.limit ?? 0
+  }
+
   function contentOf(key: string, fallback: string): string {
     return contents.value[key] ?? fallback
   }
 
+  /** 枚举服务端规则清单（本地 dev / preview 服务）；静态托管返回 null，由调用方兜底 */
+  async function loadTargetList(): Promise<RuleTarget[] | null> {
+    try {
+      const response = await fetch('/api/harness?target=list')
+      if (!response.ok) throw new Error('未提供写入服务')
+      const payload = (await response.json()) as { ok?: boolean; targets?: unknown }
+      if (!payload.ok) throw new Error('读取失败')
+      const listed = normalizeTargets(payload.targets)
+      if (!listed.length) throw new Error('清单为空')
+      return listed
+    } catch {
+      return null
+    }
+  }
+
   async function loadTarget(key: string, fallback: string): Promise<void> {
     try {
-      const response = await fetch(`/api/harness?target=${key}`)
+      const response = await fetch(`/api/harness?target=${encodeURIComponent(key)}`)
       if (!response.ok) throw new Error('未提供写入服务')
       const payload = (await response.json()) as {
         ok?: boolean
@@ -42,6 +56,7 @@ export function useFileEditor(targets: FileEditorTarget[], limit = HARNESS_LIMIT
       if (!payload.ok || typeof payload.content !== 'string') {
         throw new Error('读取失败')
       }
+      // 文件尚不存在的规则返回空内容：dev 下以服务端为准，不再退回构建期模板
       contents.value = { ...contents.value, [key]: payload.content }
       if (payload.updated) {
         updatedAt.value = { ...updatedAt.value, [key]: payload.updated }
@@ -52,16 +67,21 @@ export function useFileEditor(targets: FileEditorTarget[], limit = HARNESS_LIMIT
   }
 
   async function loadAll(fallbacks: Record<string, string>): Promise<void> {
-    await Promise.all(targets.map((target) => loadTarget(target.key, fallbacks[target.key] ?? '')))
+    await Promise.all(
+      targetList.value.map((target) => loadTarget(target.key, fallbacks[target.key] ?? '')),
+    )
     loading.value = false
   }
 
   async function save(key: string, content: string): Promise<SaveResult> {
+    const limit = limitOf(key)
     if (!content.trim()) return { ok: false, error: '内容不能为空' }
-    if (content.length > limit) return { ok: false, error: `超过 ${limit} 字符上限` }
+    if (limit && content.length > limit) {
+      return { ok: false, error: `超过 ${limit} 字符上限` }
+    }
     saving.value = true
     try {
-      const response = await fetch(`/api/harness?target=${key}`, {
+      const response = await fetch(`/api/harness?target=${encodeURIComponent(key)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content }),
@@ -103,12 +123,13 @@ export function useFileEditor(targets: FileEditorTarget[], limit = HARNESS_LIMIT
   }
 
   return {
-    limit,
+    targets: targetList,
     contents,
     updatedAt,
     loading,
     saving,
     contentOf,
+    loadTargetList,
     loadTarget,
     loadAll,
     save,

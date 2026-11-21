@@ -1,84 +1,78 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import {
   CopyOutlined,
   DownloadOutlined,
   EditOutlined,
+  PlusOutlined,
   SaveOutlined,
 } from '@ant-design/icons-vue'
-import workspaceAgents from '/AGENTS.md?raw'
-import frontendHarness from '/harness/frontend.md?raw'
-import backendHarness from '/harness/backend.md?raw'
 import MarkdownPreview from '@/components/doc/MarkdownPreview.vue'
 import { useDocStore } from '@/stores/doc'
 import { useMarkdownRender } from '@/composables/useMarkdownRender'
 import { formatUpdated, useFileEditor } from '@/composables/useFileEditor'
+import {
+  fallbackContents,
+  HARNESS_LIMIT,
+  isValidRuleName,
+  staticTargets,
+  type RuleTarget,
+} from '@/lib/harness'
 
-type TargetKey = 'workspace' | 'frontend' | 'backend'
 type Mode = 'preview' | 'edit'
 
-interface HarnessTarget {
-  key: TargetKey
-  label: string
-  file: string
-  hint: string
-  fallback: string
-}
-
-const targets: HarnessTarget[] = [
-  {
-    key: 'workspace',
-    label: '工作区 AGENTS.md',
-    file: 'AGENTS.md',
-    hint: '所有项目通用：检索顺序、沉淀规则、禁止项',
-    fallback: workspaceAgents,
-  },
-  {
-    key: 'frontend',
-    label: '前端 harness',
-    file: 'harness/frontend.md',
-    hint: '前端技术栈、目录、代码风格与测试',
-    fallback: frontendHarness,
-  },
-  {
-    key: 'backend',
-    label: '后端 harness',
-    file: 'harness/backend.md',
-    hint: '后端分层、错误处理、数据与测试',
-    fallback: backendHarness,
-  },
-]
-
-const doc = useDocStore()
-const target = ref<TargetKey>('workspace')
+const targets = ref<RuleTarget[]>(staticTargets())
+const targetKey = ref(targets.value[0]?.key ?? 'workspace')
 const mode = ref<Mode>('preview')
 const draft = ref('')
 
 const editor = useFileEditor(targets)
 const { contents, updatedAt, loading, saving } = editor
-const HARNESS_LIMIT = editor.limit
+const doc = useDocStore()
 
-const current = computed(() => targets.find((item) => item.key === target.value) ?? targets[0])
-const currentContent = computed(
-  () => contents.value[target.value] ?? current.value.fallback,
+/** 常用规则的说明；新建规则按文件名自述，不强制登记 */
+const RULE_HINTS: Record<string, string> = {
+  workspace: '所有项目通用：检索顺序、沉淀规则、禁止项',
+  frontend: '前端技术栈、目录、代码风格与测试',
+  backend: '后端分层、错误处理、数据与测试',
+  design: '设计取舍、交互与视觉约定',
+}
+
+const current = computed(
+  () => targets.value.find((item) => item.key === targetKey.value) ?? targets.value[0],
 )
+const limit = computed(() => current.value?.limit ?? 0)
+const currentHint = computed(() => RULE_HINTS[current.value?.key ?? ''] ?? '')
+const currentContent = computed(() => {
+  const value = contents.value[targetKey.value]
+  if (value !== undefined) return value
+  return fallbackContents[targetKey.value] ?? ''
+})
+const emptyContent = computed(() => !currentContent.value.trim())
 const dirty = computed(
-  () => mode.value === 'edit' && draft.value !== contents.value[target.value],
+  () => mode.value === 'edit' && draft.value !== contents.value[targetKey.value],
 )
-const previewOverLimit = computed(() => currentContent.value.length > HARNESS_LIMIT)
-const draftOverLimit = computed(() => draft.value.length > HARNESS_LIMIT)
+const previewOverLimit = computed(() => limit.value > 0 && currentContent.value.length > limit.value)
+const draftOverLimit = computed(() => limit.value > 0 && draft.value.length > limit.value)
 const sizeText = computed(() => {
   const length = mode.value === 'edit' ? draft.value.length : currentContent.value.length
-  return `${length} / ${HARNESS_LIMIT} 字符`
+  return limit.value ? `${length} / ${limit.value} 字符` : `${length} 字符`
 })
 const sizeOver = computed(() =>
   mode.value === 'edit' ? draftOverLimit.value : previewOverLimit.value,
 )
 
+const selectOptions = computed(() =>
+  targets.value.map((item) => ({
+    label: item.exists ? item.label : `${item.label}（暂无内容）`,
+    value: item.key,
+  })),
+)
+
 const rendered = useMarkdownRender(
   currentContent,
-  computed(() => current.value.file),
+  computed(() => current.value?.file ?? ''),
 )
 const renderedHtml = rendered.html
 
@@ -88,27 +82,33 @@ watch(
   { immediate: true },
 )
 
-onMounted(() => {
-  void editor.loadAll({
-    workspace: workspaceAgents,
-    frontend: frontendHarness,
-    backend: backendHarness,
-  })
+onMounted(async () => {
+  // 服务端规则清单优先（本地 dev / preview 服务）；静态托管退回构建期清单
+  const listed = await editor.loadTargetList()
+  if (listed && listed.length) {
+    targets.value = listed
+    if (!listed.some((item) => item.key === targetKey.value)) {
+      targetKey.value = listed[0]?.key ?? 'workspace'
+    }
+  }
+  await editor.loadAll(fallbackContents)
   window.addEventListener('keydown', onKeydown)
 })
 
-watch(target, () => {
+watch(targetKey, () => {
   mode.value = 'preview'
   draft.value = ''
 })
 
-function selectTarget(key: TargetKey): void {
-  if (key === target.value) return
+/** 受控下拉：切换失败（有未保存修改）时不更新 value，选项自动回弹 */
+function selectTarget(key: unknown): void {
+  const next = String(key)
+  if (next === targetKey.value) return
   if (dirty.value) {
     message.warning('请先保存或取消当前修改')
     return
   }
-  target.value = key
+  targetKey.value = next
 }
 
 async function startEdit(): Promise<void> {
@@ -129,14 +129,15 @@ async function save(): Promise<void> {
   }
   if (draftOverLimit.value) {
     message.error(
-      `超过 ${HARNESS_LIMIT} 字符上限：请把稳定的细节拆到 harness/ 附属文档，主文件只留清单`,
+      `超过 ${limit.value} 字符上限：请把稳定的细节拆到附属文档，主文件只留清单`,
     )
     return
   }
-  const result = await editor.save(target.value, draft.value)
+  const result = await editor.save(targetKey.value, draft.value)
   if (result.ok) {
     mode.value = 'preview'
-    message.success(`已写入 ${current.value.file}`)
+    if (current.value) current.value.exists = true
+    message.success(`已写入 ${current.value?.file ?? ''}`)
   } else {
     message.error(
       result.error
@@ -151,11 +152,11 @@ function currentText(): string {
 }
 
 function copyContent(): void {
-  void editor.copyText(currentText(), current.value.file)
+  void editor.copyText(currentText(), current.value?.file ?? '')
 }
 
 function download(): void {
-  editor.downloadText(currentText(), current.value.file)
+  editor.downloadText(currentText(), current.value?.file ?? '')
 }
 
 function onKeydown(event: KeyboardEvent): void {
@@ -164,6 +165,46 @@ function onKeydown(event: KeyboardEvent): void {
     event.preventDefault()
     void save()
   }
+}
+
+const createOpen = ref(false)
+const newName = ref('')
+
+function openCreate(): void {
+  if (dirty.value) {
+    message.warning('请先保存或取消当前修改')
+    return
+  }
+  newName.value = ''
+  createOpen.value = true
+}
+
+function confirmCreate(): void {
+  if (!createOpen.value) return
+  const name = newName.value.trim()
+  if (!name) {
+    message.warning('请输入规则名')
+    return
+  }
+  if (!isValidRuleName(name)) {
+    message.error('名称只能包含中文、字母、数字、- 或 _，且不能包含空格和斜杠')
+    return
+  }
+  if (targets.value.some((item) => item.key === name)) {
+    message.error(`规则「${name}」已存在`)
+    return
+  }
+  targets.value.push({
+    key: name,
+    file: `harness/${name}.md`,
+    label: name,
+    exists: false,
+    limit: HARNESS_LIMIT,
+  })
+  targetKey.value = name
+  createOpen.value = false
+  // 等受控 watch 把模式复位后，直接进入编辑写第一版
+  void nextTick(() => void startEdit())
 }
 
 onUnmounted(() => window.removeEventListener('keydown', onKeydown))
@@ -175,7 +216,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
       <div class="head-copy">
         <span class="eyebrow">PERSONAL HARNESS</span>
         <h1>Harness 配置</h1>
-        <p>工作区、前端、后端的个人规则。保存后直接写入对应文件，下一次 AI 会话即可生效；单份主文件上限 {{ HARNESS_LIMIT }} 字符，超出请拆分到附属文档。</p>
+        <p>下拉选择要编辑的规则：工作区规则对应根目录 <code>AGENTS.md</code>，其余规则是 <code>harness/</code> 下的规则文件。保存直接写文件，下一次 AI 会话即可生效；规则主文件上限 {{ HARNESS_LIMIT }} 字符，超出请拆分到附属文档。</p>
       </div>
 
       <div class="head-actions">
@@ -205,26 +246,27 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
       </div>
     </header>
 
-    <div class="target-tabs" role="tablist">
-      <button
-        v-for="item in targets"
-        :key="item.key"
-        class="target"
-        :class="{ active: target === item.key }"
-        type="button"
-        role="tab"
-        :aria-selected="target === item.key"
-        @click="selectTarget(item.key)"
-      >
-        <span class="target-label">{{ item.label }}</span>
-        <span class="target-hint">{{ item.hint }}</span>
-      </button>
+    <div class="target-bar">
+      <a-select
+        class="rule-select"
+        :value="targetKey"
+        size="large"
+        show-search
+        option-filter-prop="label"
+        :options="selectOptions"
+        @change="selectTarget"
+      />
+      <a-button size="large" @click="openCreate">
+        <template #icon><PlusOutlined /></template>
+        新建规则
+      </a-button>
+      <span v-if="currentHint" class="target-hint">{{ currentHint }}</span>
     </div>
 
     <div class="file-bar">
-      <code>{{ current.file }}</code>
-      <span v-if="updatedAt[target]" class="file-updated">
-        更新于 {{ formatUpdated(updatedAt[target]) }}
+      <code>{{ current?.file }}</code>
+      <span v-if="updatedAt[targetKey]" class="file-updated">
+        更新于 {{ formatUpdated(updatedAt[targetKey]) }}
       </span>
       <span class="file-size" :class="{ over: sizeOver }">{{ sizeText }}</span>
       <span v-if="dirty" class="file-dirty">未保存</span>
@@ -245,7 +287,15 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
     </div>
 
     <div v-else-if="mode === 'preview'" class="preview">
-      <MarkdownPreview :html="renderedHtml" />
+      <div v-if="emptyContent" class="empty-rule">
+        <p class="empty-title">该规则还没有内容</p>
+        <p class="empty-desc">
+          点「编辑配置」写入第一版；保存后创建
+          <code>{{ current?.file }}</code>
+          ，AI 在相关任务里读取。也可以先「新建规则」沉淀新的主题。
+        </p>
+      </div>
+      <MarkdownPreview v-else :html="renderedHtml" />
     </div>
 
     <div v-else class="editor">
@@ -254,8 +304,8 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
         class="limit-alert"
         type="warning"
         show-icon
-        :message="`当前 ${draft.length} 字符，超过 ${HARNESS_LIMIT} 上限`"
-        description="把稳定的细节拆到 harness/frontend/、harness/backend/ 下的附属文档（按主题命名），主文件只留「附属文档清单」；精简后再保存。"
+        :message="`当前 ${draft.length} 字符，超过 ${limit} 上限`"
+        description="把稳定的细节拆到 harness/ 下按主题命名的附属文档（如 harness/frontend/），主文件只留「附属文档清单」；精简后再保存。"
       />
       <a-textarea
         v-model:value="draft"
@@ -265,12 +315,29 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
         placeholder="填写配置内容……"
       />
       <div class="edit-foot">
-        <span>保存后直接写入 <code>{{ current.file }}</code>；也可复制或下载后手动提交。</span>
+        <span>保存后直接写入 <code>{{ current?.file }}</code>；也可复制或下载后手动提交。</span>
         <span :class="{ 'over-text': draftOverLimit }">
-          {{ draft.length }} / {{ HARNESS_LIMIT }} 字符 · ⌘/Ctrl+S 保存
+          {{ sizeText }} · ⌘/Ctrl+S 保存
         </span>
       </div>
     </div>
+
+    <a-modal
+      v-model:open="createOpen"
+      title="新建规则"
+      ok-text="创建"
+      cancel-text="取消"
+      @ok="confirmCreate"
+    >
+      <p class="modal-desc">
+        规则保存为 <code>harness/规则名.md</code>，名称同时用于下拉显示与 AI 按任务读取。
+      </p>
+      <a-input
+        v-model:value="newName"
+        placeholder="如：测试规则、运维规则"
+        @press-enter="confirmCreate"
+      />
+    </a-modal>
   </div>
 </template>
 
@@ -310,6 +377,12 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
   color: var(--aw-text-2);
 }
 
+.harness-head code {
+  font-family: var(--aw-font-mono);
+  font-size: 12.5px;
+  color: var(--aw-text);
+}
+
 .head-actions {
   display: flex;
   align-items: center;
@@ -324,50 +397,25 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
   font-size: 14.5px;
 }
 
-.target-tabs {
+.target-bar {
   margin-top: 26px;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.target {
   display: flex;
-  flex-direction: column;
-  gap: 5px;
-  padding: 13px 15px;
-  border: 1px solid var(--aw-line);
-  border-radius: 10px;
-  background: var(--aw-bg);
-  text-align: left;
-  cursor: pointer;
-  transition: border-color var(--aw-transition), background var(--aw-transition);
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
-.target:hover {
-  border-color: var(--aw-line-strong);
-  background: var(--aw-bg-soft);
-}
-
-.target.active {
-  border-color: var(--aw-line-strong);
-  background: var(--aw-bg-soft);
-}
-
-.target-label {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--aw-text);
+.rule-select {
+  width: 240px;
 }
 
 .target-hint {
-  font-size: 12px;
-  line-height: 1.55;
+  font-size: 12.5px;
   color: var(--aw-text-3);
 }
 
 .file-bar {
-  margin-top: 18px;
+  margin-top: 14px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -440,6 +488,32 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
   overflow: hidden;
 }
 
+.empty-rule {
+  padding: 42px 24px;
+  text-align: center;
+}
+
+.empty-title {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--aw-text-2);
+}
+
+.empty-desc {
+  margin: 0 auto;
+  max-width: 460px;
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--aw-text-3);
+}
+
+.empty-desc code {
+  font-family: var(--aw-font-mono);
+  font-size: 12px;
+  color: var(--aw-text-2);
+}
+
 .code-area {
   border: 0 !important;
   border-radius: 0 !important;
@@ -470,6 +544,19 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
   color: var(--aw-text-2);
 }
 
+.modal-desc {
+  margin: 0 0 12px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--aw-text-3);
+}
+
+.modal-desc code {
+  font-family: var(--aw-font-mono);
+  font-size: 12px;
+  color: var(--aw-text-2);
+}
+
 .loading {
   padding: 24px;
   border: 1px solid var(--aw-line);
@@ -477,8 +564,12 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 }
 
 @media (max-width: 760px) {
-  .target-tabs {
-    grid-template-columns: 1fr;
+  .rule-select {
+    width: 100%;
+  }
+
+  .target-bar :deep(.ant-btn) {
+    width: 100%;
   }
 
   .harness-head h1 {

@@ -350,3 +350,48 @@
 :root.dark .markdown-body .hljs-attribute {
   color: #d0b078;
 }
+
+/* ---------------------------------------------------------------------------
+ * Mermaid 图表：markdown.ts 生成占位块，MarkdownPreview 挂载后渲染成 SVG。
+ * --------------------------------------------------------------------------- */
+.markdown-body .mermaid-block {
+  margin: 1.5em 0;
+  text-align: center;
+}
+
+.markdown-body .mermaid-source {
+  display: none;
+  margin: 0;
+}
+
+.markdown-body .mermaid-figure {
+  display: flex;
+  justify-content: center;
+  padding: 16px 14px;
+  background: var(--aw-bg-soft);
+  border: 1px solid var(--aw-line);
+  border-radius: 10px;
+  overflow-x: auto;
+}
+
+.markdown-body .mermaid-figure svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* 渲染失败：回退展示源码与原因 */
+.markdown-body .mermaid-error {
+  padding: 10px 14px;
+  margin: 0 0 10px;
+  border: 1px dashed var(--aw-line-strong);
+  border-radius: 8px;
+  background: var(--aw-bg-soft);
+  font-size: 13px;
+  color: var(--aw-text-3);
+  text-align: left;
+}
+
+.markdown-body .mermaid-block.mermaid-failed .mermaid-source {
+  display: block;
+  text-align: left;
+}
